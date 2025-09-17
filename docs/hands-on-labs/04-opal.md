@@ -18,15 +18,17 @@ Welcome to the FortiCNAPP OPAL Lab. This guide demonstrates why custom OPAL poli
 
 ## OPAL Overview
 
-OPAL (Open Policy Agent for Lacework) is FortiCNAPP's infrastructure-as-code (IaC) static analyzer based on **Open Policy Agent** and **Rego** language. It evaluates AWS, Azure, GCP, and Kubernetes configurations for potential security and compliance violations **before deployment**.
+OPAL is FortiCNAPP's IaC static analyzer based on the **OPA framework** and **Rego** language. OPAL evaluates infrastructure as code (IaC) files for potential AWS, Azure, Google Cloud, and Kubernetes security and compliance violations prior to deployment.
 
 !!! info "Supported Frameworks"
-    | Framework              | Format         |
-    |------------------------|----------------|
-    | Azure Resource Manager | JSON           |
-    | CloudFormation         | JSON, YAML     |
-    | Kubernetes             | YAML           |
-    | Terraform              | HCL, JSON Plan |
+    | Framework                    | Format         |
+    |------------------------------|----------------|
+    | Azure Resource Manager (ARM) | JSON           |
+    | CloudFormation               | JSON, YAML     |
+    | Kubernetes                   | YAML           |
+    | Terraform                    | HCL, JSON Plan |
+
+OPAL is part of the IaC component within the FortiCNAPP CLI. The FortiCNAPP CLI works with CI/CD tools such as **Jenkins**, **Circle CI**, **GitHub Actions**, and **GitLab Pipelines**.
 
 ### The Security Gap
 
@@ -53,32 +55,13 @@ They DON'T check for:
 
 ---
 
-## Fast-Forward: Ready-to-Run Demo
-
-!!! tip "Complete Lab Repository"
-
-    A working OPAL demonstration with enhanced content is available:
-
-    🔗 **[Enhanced OPAL Lab](https://github.com/40docs/lab-forticnapp-opal)**
-
-    ```bash
-    git clone https://github.com/40docs/lab-forticnapp-opal.git
-    cd lab-forticnapp-opal
-
-    # Run standard scan - only finds 3 minor issues
-    lacework iac scan -d terraform/ 2>&1 | grep "false.*false"
-
-    # Run with OPAL custom policies - finds critical business violations!
-    lacework iac scan -d terraform/ --upload=false --custom-policy-dir=policies 2>&1 | grep "^c-opl"
-    ```
-
----
 
 ## Part 1: The Problem - When Standard Scanning Isn't Enough
 
 ### Your Organization's Requirements
 
 Let's say your company has specific security requirements:
+
 - Production web servers MUST use specific security groups for audit logging
 - Development and production resources must NEVER share security groups
 - ALL production instances require an audit logging security group
@@ -100,6 +83,7 @@ lacework iac scan -d terraform/ 2>&1 | grep "false.*false"
 ```
 
 **What Standard Scanning Finds:**
+
 - ✅ Most checks PASS
 - ⚠️ Only 3 minor issues:
   - S3 bucket missing cross-region replication (Medium)
@@ -107,6 +91,7 @@ lacework iac scan -d terraform/ 2>&1 | grep "false.*false"
   - EC2 not EBS-optimized (Low)
 
 **What's Actually Wrong (that standard scanning missed):**
+
 - ❌ Production server missing required audit-logging security group
 - ❌ Security group exists but isn't attached to production instances
 - ❌ Business compliance requirement completely ignored
@@ -312,7 +297,7 @@ lacework iac policy upload -d policies
 
 ```bash
 # Run OPAL scan in your pipeline
-lacework iac tf-scan opal --disable-custom-policies=false -d /path/to/terraform/project
+lacework iac scan -d /path/to/terraform/project --upload=false --custom-policy-dir=policies
 ```
 
 ### Policy Development Best Practices
@@ -341,6 +326,3 @@ Your infrastructure is only as secure as the rules you enforce. Generic rules gi
 
 ---
 
-!!! info "Complete Lab Repository"
-    Access the full enhanced lab with working examples:
-    **[https://github.com/40docs/lab-forticnapp-opal](https://github.com/40docs/lab-forticnapp-opal)**
