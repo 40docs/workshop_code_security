@@ -8,17 +8,17 @@ buttons:
       target: _blank
 ---
 
-# OPAL
+# OPAL: Beyond Spell-Check Security
 
-Welcome to the FortiCNAPP OPAL Lab. This guide walks you through building, testing, and optionally uploading a custom OPAL policy using the FortiCNAPP CLI.
+> **Standard IaC scanning is like spell-check - necessary but not sufficient. OPAL is like having your security architect review every change.**
+
+Welcome to the FortiCNAPP OPAL Lab. This guide demonstrates why custom OPAL policies are essential for enterprise security by showing how standard scanning misses critical business requirements.
 
 ---
 
-## Opal Overview
+## OPAL Overview
 
-OPAL is FortiCNAPP’s infrastructure-as-code (IaC) static analyzer based on the **OPA** framework and **Rego** language. It evaluates AWS, Azure, GCP, and Kubernetes configurations for potential security and compliance violations **before deployment**.
-
-You can create custom OPAL policies in Rego and scan your IaC with them using the FortiCNAPP CLI.
+OPAL (Open Policy Agent for Lacework) is FortiCNAPP's infrastructure-as-code (IaC) static analyzer based on **Open Policy Agent** and **Rego** language. It evaluates AWS, Azure, GCP, and Kubernetes configurations for potential security and compliance violations **before deployment**.
 
 !!! info "Supported Frameworks"
     | Framework              | Format         |
@@ -28,214 +28,319 @@ You can create custom OPAL policies in Rego and scan your IaC with them using th
     | Kubernetes             | YAML           |
     | Terraform              | HCL, JSON Plan |
 
-OPAL supports CI/CD tools such as **Jenkins**, **CircleCI**, and **AWS CodePipeline** via the Lacework FortiCNAPP CLI.
+### The Security Gap
 
-### How It Works
+Standard IaC scanners check for:
+- Open ports to 0.0.0.0/0
+- Missing encryption
+- Default passwords
+- Known CVEs
 
-- Converts your IaC into a normalized data structure
-- Evaluates that structure against custom Rego policies
-- Outputs results in **CLI**, **JSON**, or **JUnit.xml**
-- Can be used standalone or integrated into pipelines
-- Policy config can be toggled in `config.yaml` or the UI
+They DON'T check for:
+- YOUR specific port requirements
+- YOUR environment isolation rules
+- YOUR role-based security requirements
+- YOUR compliance needs
 
 ---
 
 ## What You'll Learn
 
-- How to install and configure the FortiCNAPP CLI
-- How to generate a custom OPAL policy with tests
-- How to run and debug policy test results
-- How to upload policies and use them in scans
+- Why standard IaC scanning isn't enough for enterprise security
+- How to create custom OPAL policies that enforce YOUR business logic
+- The critical importance of testing both pass AND fail scenarios
+- How OPAL catches violations that standard scanners miss
 
 ---
 
-## Fast-Forward: Pressed on Time? Try This
+## Fast-Forward: Ready-to-Run Demo
 
-Not interested in following the full guide and just want a working demo?
+!!! tip "Complete Lab Repository"
 
-!!! tip "Skip the setup"
-    
-    A working OPAL policy, metadata, and test cases are included in a GitHub repo:
+    A working OPAL demonstration with enhanced content is available:
 
-    🔗 [OPAL Demo](https://github.com/40docs/lab-forticnapp-opal)
-
-    Clone it and run:
+    🔗 **[Enhanced OPAL Lab](https://github.com/40docs/lab-forticnapp-opal)**
 
     ```bash
-    gh repo create lab-forticnapp-opal --template 40docs/lab-forticnapp-opal.git
-    cd lab-forticnapp-opal/policies
-    lacework iac policy test -d opal/sample_custom_policy
+    git clone https://github.com/40docs/lab-forticnapp-opal.git
+    cd lab-forticnapp-opal
+
+    # Run standard scan - only finds 3 minor issues
+    lacework iac scan -d terraform/ 2>&1 | grep "false.*false"
+
+    # Run with OPAL custom policies - finds critical business violations!
+    lacework iac scan -d terraform/ --upload=false --custom-policy-dir=policies 2>&1 | grep "^c-opl"
     ```
 
-## Setup
+---
 
-## Creating a Custom OPAL Policy
+## Part 1: The Problem - When Standard Scanning Isn't Enough
 
-To begin using OPAL in FortiCNAPP, install the FortiCNAPP CLI and initialize a policy project.
+### Your Organization's Requirements
 
-## 1. Install CLI and IaC Component
+Let's say your company has specific security requirements:
+- Production web servers MUST use specific security groups for audit logging
+- Development and production resources must NEVER share security groups
+- ALL production instances require an audit logging security group
 
-!!! note
-    Ensure the FortiCNAPP CLI is installed. OPAL is bundled within the IaC security component.
+### Exercise: Run Standard IaC Scan
 
-## 2. Start the Policy Wizard
+First, examine infrastructure that looks secure to standard scanners:
 
 ```bash
-lacework iac policy create
+# Clone the demo repository
+git clone https://github.com/40docs/lab-forticnapp-opal.git
+cd lab-forticnapp-opal
+
+# Look at the "secure" infrastructure
+cat terraform/looks_secure.tf
+
+# Run standard IaC scan - see only failures
+lacework iac scan -d terraform/ 2>&1 | grep "false.*false"
 ```
 
-Respond to prompts with:
+**What Standard Scanning Finds:**
+- ✅ Most checks PASS
+- ⚠️ Only 3 minor issues:
+  - S3 bucket missing cross-region replication (Medium)
+  - S3 bucket missing access logging (Medium)
+  - EC2 not EBS-optimized (Low)
 
-| Prompt                  | Value                  |
-|------------------------|------------------------|
-| Policies directory path | `../policies`         |
-| Select provider        | `aws`                  |
-| Select target          | `terraform`            |
-| Policy name            | `sample_custom_policy` |
-| Title                  | `Sample Custom Policy` |
-| Category               | `logging`              |
-| ResourceType           | `aws_s3_bucket`        |
-| Severity               | `medium`               |
+**What's Actually Wrong (that standard scanning missed):**
+- ❌ Production server missing required audit-logging security group
+- ❌ Security group exists but isn't attached to production instances
+- ❌ Business compliance requirement completely ignored
 
-!!! info "Naming Convention"
-    Policy names must be lowercase with underscores (e.g., `sample_custom_policy`).
+!!! warning "The Gap"
+    Standard scanners found 3 minor operational issues but missed a critical business security requirement!
 
-A directory structure like this is created:
+---
 
-```text
-../policies/opal/sample_custom_policy/terraform/
-../policies/opal/sample_custom_policy/terraform/tests/
+## Part 2: The Solution - Custom Policies with OPAL
+
+### Creating Your Business Logic Policy
+
+Let's create a policy that enforces YOUR requirement: "All production instances must have the audit-logging-sg security group"
+
+#### Step 1: Create Policy Structure
+
+```bash
+cd policies/opal
+mkdir my_audit_policy
+cd my_audit_policy
+
+# Create metadata file
+cat > metadata.yaml <<EOF
+policy_id: "my-audit-requirement"
+title: "Production Audit Logging Requirement"
+severity: "High"
+description: "All production instances must have audit logging security group"
+resource_type: "aws_instance"
+provider: "aws"
+category: "Compliance"
+EOF
 ```
 
-## 3. Review `metadata.yaml`
+#### Step 2: Write the Policy Logic
 
-Located at:
-
-```text
-../policies/opal/sample_custom_policy/metadata.yaml
-```
-
-It includes:
-
-```yaml
-category: logging
-checkTool: opal
-checkType: terraform
-description: "example policy"
-provider: aws
-severity: medium
-title: "Sample Custom Policy"
-```
-
-## 4. Add OPAL Policy Logic
-
-Edit `policy.rego`:
-
-```rego
-package policies.sample_custom_policy
+```bash
+cat > policy.rego <<'EOF'
+package policies.my_audit_policy
 
 input_type := "tf"
-resource_type := "aws_s3_bucket"
+resource_type := "aws_instance"
 default allow = false
 
+# Production instances must have audit-logging-sg
 allow {
-  input.logging[_].target_bucket == "example"
+    # Check if this is a production instance
+    input.tags.Environment == "production"
+
+    # Check if audit-logging-sg is present
+    has_audit_logging_sg
 }
+
+# Non-production instances don't need audit logging
+allow {
+    input.tags.Environment != "production"
+}
+
+# Helper to check for audit logging security group
+has_audit_logging_sg {
+    sg_ref := input.vpc_security_group_ids[_]
+    contains(sg_ref, "audit_logging_sg")
+}
+EOF
+
+# IMPORTANT: Copy policy to terraform directory for testing
+cp policy.rego terraform/
 ```
 
-## Demo
+---
 
-## Testing and running custom policies
+## Part 3: Critical Step - Unit Testing Your Policy
 
-Now that you've created your custom OPAL policy, test it with Terraform examples.
+!!! danger "Common Mistake"
+    "My test passed, so my policy works!"
 
-## 1. Create Test Inputs
+    **Reality**: A passing test only proves your policy accepts good configurations. It doesn't prove it rejects bad ones!
 
-### ✅ Passing Test
+### Creating Comprehensive Tests
+
+#### Create PASSING Test Cases
 
 ```bash
-mkdir -p ../policies/opal/sample_custom_policy/terraform/tests/pass
-```
+mkdir -p terraform/tests/pass
 
-Create `main.tf`:
+cat > terraform/tests/pass/compliant.tf <<'EOF'
+# This SHOULD pass - production instance with audit logging
+resource "aws_instance" "good_production" {
+  ami           = "ami-12345"
+  instance_type = "t3.micro"
 
-```hcl
-resource "aws_s3_bucket" "test" {
-  bucket = "test-bucket"
-  logging {
-    target_bucket = "example"
+  vpc_security_group_ids = [
+    aws_security_group.web_sg.id,
+    aws_security_group.audit_logging_sg.id  # Required for production
+  ]
+
+  tags = {
+    Name        = "prod-web-01"
+    Environment = "production"
   }
 }
+
+# Supporting security groups
+resource "aws_security_group" "web_sg" {
+  name = "web-sg"
+}
+
+resource "aws_security_group" "audit_logging_sg" {
+  name = "audit-logging-sg"
+}
+EOF
 ```
 
-### ❌ Failing Test
+#### Create FAILING Test Cases (CRUCIAL!)
 
 ```bash
-mkdir -p ../policies/opal/sample_custom_policy/terraform/tests/fail
-```
+mkdir -p terraform/tests/fail
 
-Create `main.tf`:
+cat > terraform/tests/fail/violations.tf <<'EOF'
+# This SHOULD fail - production instance WITHOUT audit logging
+resource "aws_instance" "bad_production" {
+  ami           = "ami-12345"
+  instance_type = "t3.micro"
 
-```hcl
-resource "aws_s3_bucket" "test" {
-  bucket = "test-bucket"
-  logging {
-    target_bucket = "bad-example"
+  vpc_security_group_ids = [
+    aws_security_group.web_sg.id
+    # MISSING: aws_security_group.audit_logging_sg.id
+  ]
+
+  tags = {
+    Name        = "prod-web-02"
+    Environment = "production"  # Production requires audit logging!
   }
 }
+
+# Supporting security group
+resource "aws_security_group" "web_sg" {
+  name = "web-sg"
+}
+EOF
 ```
 
-!!! note
-    You can include either passing, failing, or both test types.
-
-## 2. Run Policy Tests
+#### Test Your Policy
 
 ```bash
-lacework iac policy test -d ../policies/opal/sample_custom_policy
+# Test your policy
+lacework iac policy test -d policies/opal/my_audit_policy
+
+# Expected output:
+# ✅ Pass test: compliant.tf - PASSED (policy accepted good config)
+# ✅ Fail test: violations.tf - PASSED (policy rejected bad config)
 ```
 
-Expected output includes test results for each `pass/` and `fail/` case.
+!!! success "Testing Insight"
+    If your fail test doesn't actually fail, your policy has a bug! This validates that your policy logic correctly rejects non-compliant configurations.
 
-## 3. Debug with Rego Print
+---
 
-Add a print statement to your policy:
+## Part 4: Victory Lap - Catching Real Issues
 
-```rego
-print(sprintf("target_bucket: %s", [input.logging[_].target_bucket]))
-```
+Now let's apply your tested policy to the original infrastructure:
 
-Output example:
-
-```json
-"print_statements": [
-  {
-    "Message": "target_bucket: example",
-    "Line": 5,
-    "PolicyFile": "/path/to/policy.rego"
-  }
-]
-```
-
-!!! warning "Avoid Committing Prints"
-    Do not commit print statements to version control.
-
-## 4. Upload Custom Policy
-
-You can package and upload your entire policies directory:
+### Standard Scan vs OPAL Custom Policy
 
 ```bash
-lacework iac policy upload -d ../policies
+# Standard scan - misses business logic violations
+echo "=== STANDARD SCAN - What it catches ==="
+lacework iac scan -d terraform/ 2>&1 | grep "false.*false"
+
+# Output: Only operational issues
+# - S3 bucket missing replication (operational)
+# - S3 bucket missing logging (operational)
+# - EC2 not EBS-optimized (performance)
+
+echo "=== OPAL CUSTOM POLICIES - What YOU need caught ==="
+lacework iac scan -d terraform/ --upload=false --custom-policy-dir=policies 2>&1 | grep "c-opl-my-audit"
+
+# Output:
+# c-opl-my-audit-policy  High  false  Production Audit Logging Requirement
+# ^^^ YOUR CRITICAL BUSINESS REQUIREMENT VIOLATION CAUGHT!
 ```
 
-This will replace all existing custom policies.
+### The Clear Difference
 
-## 5. Use Policies with a Target Directory
+**Standard Scanning**: Found operational and performance issues
+**OPAL Custom Policies**: Found YOUR specific business security violations
 
-Run an OPAL scan on any Terraform project:
+!!! example "Real-World Impact"
+    Your infrastructure passed 90%+ of standard security checks but was violating a critical compliance requirement that could result in audit failures or security incidents.
+
+---
+
+## Advanced Usage
+
+### Upload Custom Policies
 
 ```bash
-lacework iac tf-scan opal --disable-custom-policies=false -d path/to/project
+# Upload your entire policy set to FortiCNAPP
+lacework iac policy upload -d policies
 ```
 
-!!! tip
-    If `-d` is not provided, the current directory is used.
+### Integrate with CI/CD
+
+```bash
+# Run OPAL scan in your pipeline
+lacework iac tf-scan opal --disable-custom-policies=false -d /path/to/terraform/project
+```
+
+### Policy Development Best Practices
+
+1. **Always test both pass AND fail scenarios**
+2. **Use descriptive policy and violation messages**
+3. **Start with deny-by-default security model**
+4. **Test against real-world configurations**
+5. **Version control your policies like code**
+
+---
+
+## Key Takeaway
+
+> **"Standard IaC scanning is spell-check. OPAL is having your security architect review every change."**
+
+Your infrastructure is only as secure as the rules you enforce. Generic rules give you generic security. Custom rules give you custom security - the kind YOUR business actually needs.
+
+## Next Steps
+
+1. Identify YOUR organization's specific security requirements
+2. Write OPAL policies that enforce them
+3. Test thoroughly with both pass AND fail cases
+4. Integrate into your CI/CD pipeline
+5. Sleep better knowing YOUR requirements are enforced
+
+---
+
+!!! info "Complete Lab Repository"
+    Access the full enhanced lab with working examples:
+    **[https://github.com/40docs/lab-forticnapp-opal](https://github.com/40docs/lab-forticnapp-opal)**
