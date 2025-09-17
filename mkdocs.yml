@@ -1,12 +1,12 @@
 site_name: Cloud Workshop
 site_description: Azure Cloud Workshop Documentation
 site_author: 40docs
-site_url: https://40docs.github.io/workshop_azure/
+site_url: https://40docs.github.io/workshop_content_code_security/
 copyright: "40docs Organization"
 
 # Repository
 repo_name: 40docs/workshop_azure
-repo_url: https://github.com/40docs/workshop_azure
+repo_url: https://github.com/40docs/workshop_content_code_security
 edit_uri: edit/main/docs/
 
 # Theme configuration
