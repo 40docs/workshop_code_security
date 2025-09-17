@@ -54,17 +54,18 @@ OPAL supports CI/CD tools such as **Jenkins**, **CircleCI**, and **AWS CodePipel
 Not interested in following the full guide and just want a working demo?
 
 !!! tip "Skip the setup"
+    
     A working OPAL policy, metadata, and test cases are included in a GitHub repo:
 
     🔗 [OPAL Demo](https://github.com/40docs/lab-forticnapp-opal)
 
-Clone it and run:
+    Clone it and run:
 
-```bash
-gh repo create lab-forticnapp-opal --template 40docs/lab-forticnapp-opal.git
-cd lab-forticnapp-opal/policies
-lacework iac policy test -d opal/sample_custom_policy
-```
+    ```bash
+    gh repo create lab-forticnapp-opal --template 40docs/lab-forticnapp-opal.git
+    cd lab-forticnapp-opal/policies
+    lacework iac policy test -d opal/sample_custom_policy
+    ```
 
 ## Setup
 
