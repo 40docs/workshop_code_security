@@ -10,7 +10,7 @@ buttons:
 
 # OPAL: Beyond Spell-Check Security
 
-![IaCvsPaC](images/assets_task_01k5d8ek2hfg88j0gsbgrh7cm4_1758160498_img_1.webp)
+![IaCvsPaC](images/magicians.webp)
 
 > **Standard IaC scanning is like spell-check - necessary but not sufficient. OPAL is like having your security architect review every change.**
 
@@ -33,6 +33,8 @@ OPAL is FortiCNAPP's IaC static analyzer based on the **OPA framework** and **Re
 OPAL is part of the IaC component within the FortiCNAPP CLI. The FortiCNAPP CLI works with CI/CD tools such as **Jenkins**, **Circle CI**, **GitHub Actions**, and **GitLab Pipelines**.
 
 ### The Security Gap
+
+![IACPAC](images/assets_task_01k5d8ek2hfg88j0gsbgrh7cm4_1758160498_img_1.webp)
 
 Standard IaC scanners check for:
 
