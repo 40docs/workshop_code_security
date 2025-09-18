@@ -44,7 +44,6 @@ Standard IaC scanners operate like automated spell-checkers - they catch obvious
 - Open ports to 0.0.0.0/0 (obvious misconfigurations)
 - Missing encryption (checkbox compliance)
 - Public S3 buckets (well-known risks)
-- Default passwords (basic hygiene)
 
 **What YOUR Business Actually Needs:**
 
