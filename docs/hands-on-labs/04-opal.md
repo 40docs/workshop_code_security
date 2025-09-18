@@ -115,62 +115,75 @@ lacework iac scan -d terraform/ 2>&1 | grep "false.*false"
 
 ## Part 2: The Solution - Custom Policies with OPAL
 
-### Creating Your Business Logic Policy
+### Understanding the Custom Policy
 
-Let's create a policy that enforces YOUR requirement: "All production instances must have the audit-logging-sg security group"
+The cloned repository already contains a custom OPAL policy that enforces YOUR requirement. Let's examine how it works:
 
-#### Step 1: Create Policy Structure
+#### Step 1: Explore the Existing Policy Structure
 
 ```bash
-cd policies/opal
-mkdir my_audit_policy
-cd my_audit_policy
+# From the lab-forticnapp-opal directory
+ls -la policies/opal/my_audit_policy/
+
+# Review the policy metadata
+cat policies/opal/my_audit_policy/metadata.yaml
+
+# This shows:
+# - policy_id: "my-audit-requirement"
+# - severity: "High"
+# - description: Production instances require audit logging
+```
+
+#### Optional: Create Your Own Policy
+
+If you want to create a new custom policy from scratch:
+
+```bash
+# Create a new policy directory
+mkdir -p policies/opal/my_custom_policy
+cd policies/opal/my_custom_policy
 
 # Create metadata file
 cat > metadata.yaml <<EOF
-policy_id: "my-audit-requirement"
-title: "Production Audit Logging Requirement"
+policy_id: "my-custom-requirement"
+title: "My Organization's Custom Requirement"
 severity: "High"
-description: "All production instances must have audit logging security group"
+description: "Custom security requirement for our organization"
 resource_type: "aws_instance"
 provider: "aws"
 category: "Compliance"
 EOF
 ```
 
-#### Step 2: Write the Policy Logic
+#### Step 2: Examine the Policy Logic
 
 ```bash
+# Review the existing policy logic
+cat policies/opal/my_audit_policy/policy.rego
+
+# The policy enforces:
+# - Production instances MUST have audit-logging-sg
+# - Non-production instances are exempt
+# - Uses helper function to check security groups
+```
+
+For creating your own custom policy, here's the logic:
+
+```bash
+# If creating a new policy (my_custom_policy)
 cat > policy.rego <<'EOF'
-package policies.my_audit_policy
+package policies.my_custom_policy
 
 input_type := "tf"
 resource_type := "aws_instance"
 default allow = false
 
-# Production instances must have audit-logging-sg
+# Your custom requirement logic here
 allow {
-    # Check if this is a production instance
-    input.tags.Environment == "production"
-
-    # Check if audit-logging-sg is present
-    has_audit_logging_sg
-}
-
-# Non-production instances don't need audit logging
-allow {
-    input.tags.Environment != "production"
-}
-
-# Helper to check for audit logging security group
-has_audit_logging_sg {
-    sg_ref := input.vpc_security_group_ids[_]
-    contains(sg_ref, "audit_logging_sg")
+    # Define your business rules
+    input.tags.YourRequirement == "YourValue"
 }
 EOF
-
-# IMPORTANT: Copy policy to terraform directory for testing
-cp policy.rego terraform/
 ```
 
 ---
@@ -182,71 +195,58 @@ cp policy.rego terraform/
 
     **Reality**: A passing test only proves your policy accepts good configurations. It doesn't prove it rejects bad ones!
 
-### Creating Comprehensive Tests
+### Understanding the Test Cases
 
-#### Create PASSING Test Cases
+The repository includes comprehensive test cases. Let's examine them:
+
+#### Review PASSING Test Cases
 
 ```bash
-mkdir -p terraform/tests/pass
+# See what configurations should PASS
+ls -la policies/opal/my_audit_policy/terraform/tests/pass/
+cat policies/opal/my_audit_policy/terraform/tests/pass/compliant.tf
 
-cat > terraform/tests/pass/compliant.tf <<'EOF'
-# This SHOULD pass - production instance with audit logging
-resource "aws_instance" "good_production" {
-  ami           = "ami-12345"
-  instance_type = "t3.micro"
+# This shows production instances WITH audit-logging-sg (correct)
+# And development instances without it (also correct)
+```
 
-  vpc_security_group_ids = [
-    aws_security_group.web_sg.id,
-    aws_security_group.audit_logging_sg.id  # Required for production
-  ]
+#### Review FAILING Test Cases (CRUCIAL!)
 
-  tags = {
-    Name        = "prod-web-01"
-    Environment = "production"
-  }
+```bash
+# See what configurations should FAIL
+ls -la policies/opal/my_audit_policy/terraform/tests/fail/
+cat policies/opal/my_audit_policy/terraform/tests/fail/violations.tf
+
+# This shows production instances WITHOUT audit-logging-sg (violation!)
+```
+
+#### Optional: Create Your Own Test Cases
+
+If you created a custom policy, add test cases:
+
+```bash
+# For your custom policy
+mkdir -p policies/opal/my_custom_policy/terraform/tests/pass
+mkdir -p policies/opal/my_custom_policy/terraform/tests/fail
+
+# Create a passing test
+cat > policies/opal/my_custom_policy/terraform/tests/pass/good.tf <<'EOF'
+# Configuration that meets YOUR requirements
+resource "aws_instance" "compliant" {
+  # ... your compliant configuration
 }
+EOF
 
-# Supporting security groups
-resource "aws_security_group" "web_sg" {
-  name = "web-sg"
-}
-
-resource "aws_security_group" "audit_logging_sg" {
-  name = "audit-logging-sg"
+# Create a failing test
+cat > policies/opal/my_custom_policy/terraform/tests/fail/bad.tf <<'EOF'
+# Configuration that violates YOUR requirements
+resource "aws_instance" "violation" {
+  # ... your non-compliant configuration
 }
 EOF
 ```
 
-#### Create FAILING Test Cases (CRUCIAL!)
-
-```bash
-mkdir -p terraform/tests/fail
-
-cat > terraform/tests/fail/violations.tf <<'EOF'
-# This SHOULD fail - production instance WITHOUT audit logging
-resource "aws_instance" "bad_production" {
-  ami           = "ami-12345"
-  instance_type = "t3.micro"
-
-  vpc_security_group_ids = [
-    aws_security_group.web_sg.id
-    # MISSING: aws_security_group.audit_logging_sg.id
-  ]
-
-  tags = {
-    Name        = "prod-web-02"
-    Environment = "production"  # Production requires audit logging!
-  }
-}
-
-# Supporting security group
-resource "aws_security_group" "web_sg" {
-  name = "web-sg"
-}
-EOF
-```
-
-#### Test Your Policy
+#### Test the Policy
 
 ```bash
 # Test your policy
