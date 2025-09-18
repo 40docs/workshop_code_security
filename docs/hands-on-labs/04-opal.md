@@ -8,7 +8,7 @@ buttons:
       target: _blank
 ---
 
-# OPAL: Beyond Spell-Check Security
+# OPAL
 
 ![IaCvsPaC](images/magicians.webp)
 
