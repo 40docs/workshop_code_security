@@ -34,8 +34,6 @@ OPAL is part of the IaC component within the FortiCNAPP CLI. The FortiCNAPP CLI 
 
 ### The Security Gap
 
-![IACPAC](images/assets_task_01k5d8ek2hfg88j0gsbgrh7cm4_1758160498_img_1.webp)
-
 **Surface-Level vs. Deep Analysis**
 
 Standard IaC scanners operate like automated spell-checkers - they catch obvious errors but miss context and meaning:
@@ -325,6 +323,8 @@ lacework iac scan -d /path/to/terraform/project --upload=false --custom-policy-d
 ## Key Takeaway
 
 > **"Standard IaC scanning is spell-check. OPAL is having your security architect review every change."**
+
+![IACPAC](images/assets_task_01k5d8ek2hfg88j0gsbgrh7cm4_1758160498_img_1.webp)
 
 Your infrastructure is only as secure as the rules you enforce. Generic rules give you generic security. Custom rules give you custom security - the kind YOUR business actually needs.
 
