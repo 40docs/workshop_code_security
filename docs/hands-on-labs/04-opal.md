@@ -35,11 +35,13 @@ OPAL is part of the IaC component within the FortiCNAPP CLI. The FortiCNAPP CLI 
 ### The Security Gap
 
 Standard IaC scanners check for:
+
 - Open ports to 0.0.0.0/0
 - Missing encryption
 - Missing descriptions
 
 They DON'T check for:
+
 - YOUR specific port requirements
 - YOUR environment isolation rules
 - YOUR role-based security requirements
