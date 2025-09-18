@@ -37,8 +37,7 @@ OPAL is part of the IaC component within the FortiCNAPP CLI. The FortiCNAPP CLI 
 Standard IaC scanners check for:
 - Open ports to 0.0.0.0/0
 - Missing encryption
-- Default passwords
-- Known CVEs
+- Missing descriptions
 
 They DON'T check for:
 - YOUR specific port requirements
