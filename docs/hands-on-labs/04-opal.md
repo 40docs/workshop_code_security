@@ -10,6 +10,8 @@ buttons:
 
 # OPAL: Beyond Spell-Check Security
 
+![IaCvsPaC](images/assets_task_01k5d8ek2hfg88j0gsbgrh7cm4_1758160498_img_1.webp)
+
 > **Standard IaC scanning is like spell-check - necessary but not sufficient. OPAL is like having your security architect review every change.**
 
 Welcome to the FortiCNAPP OPAL Lab. This guide demonstrates why custom OPAL policies are essential for enterprise security by showing how standard scanning misses critical business requirements.
