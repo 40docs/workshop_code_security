@@ -12,7 +12,8 @@ buttons:
 
 ![IaCvsPaC](images/magicians.webp)
 
-> **"Standard IaC scanning catches the obvious. OPAL enforces what matters to YOUR business."**
+> **Standard scanners perform basic security tricks. OPAL delivers real security magic - enforcing YOUR business
+  requirements.**
 
 Welcome to the FortiCNAPP OPAL Lab. This guide demonstrates why generic security scanning - while necessary - isn't sufficient for enterprise security. You need custom OPAL policies to enforce your organization's specific requirements.
 
