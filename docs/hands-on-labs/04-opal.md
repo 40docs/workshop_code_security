@@ -39,9 +39,9 @@ OPAL is part of the IaC component within the FortiCNAPP CLI. The FortiCNAPP CLI 
 
 **Surface-Level vs. Deep Analysis**
 
-> ![gap](images/gap.png)
+![gap](images/gap.png)
 
-Standard IaC scanners lack visibility into what actually matters - they're flying blind when it comes to YOUR unique requirements and constraints.
+> Standard IaC scanners lack visibility into what actually matters - they're flying blind when it comes to YOUR unique requirements and constraints.
 
 **What Generic Scanners Find:**
 
