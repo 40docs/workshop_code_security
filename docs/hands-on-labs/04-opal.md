@@ -12,9 +12,9 @@ buttons:
 
 ![IaCvsPaC](images/magicians.webp)
 
-> **Standard IaC scanning is like spell-check - necessary but not sufficient. OPAL is like having your security architect review every change.**
+> **"Standard IaC scanning catches the obvious. OPAL enforces what matters to YOUR business."**
 
-Welcome to the FortiCNAPP OPAL Lab. This guide demonstrates why custom OPAL policies are essential for enterprise security by showing how standard scanning misses critical business requirements.
+Welcome to the FortiCNAPP OPAL Lab. This guide demonstrates why generic security scanning - while necessary - isn't sufficient for enterprise security. You need custom OPAL policies to enforce your organization's specific requirements.
 
 ---
 
@@ -36,18 +36,25 @@ OPAL is part of the IaC component within the FortiCNAPP CLI. The FortiCNAPP CLI 
 
 ![IACPAC](images/assets_task_01k5d8ek2hfg88j0gsbgrh7cm4_1758160498_img_1.webp)
 
-Standard IaC scanners check for:
+**Surface-Level vs. Deep Analysis**
 
-- Open ports to 0.0.0.0/0
-- Missing encryption
-- Missing descriptions
+Standard IaC scanners operate like automated spell-checkers - they catch obvious errors but miss context and meaning:
 
-They DON'T check for:
+**What Generic Scanners Find:**
 
-- YOUR specific port requirements
-- YOUR environment isolation rules
-- YOUR role-based security requirements
-- YOUR compliance needs
+- Open ports to 0.0.0.0/0 (obvious misconfigurations)
+- Missing encryption (checkbox compliance)
+- Public S3 buckets (well-known risks)
+- Default passwords (basic hygiene)
+
+**What YOUR Business Actually Needs:**
+
+- Production systems MUST use specific audit-logging security groups
+- Payment processing MUST be in isolated VPCs
+- Only platform team CAN modify production load balancers
+- Financial data MUST use company-managed KMS keys
+
+**The Reality:** Generic scanners are like having spell-check review your contracts - helpful, but they won't catch that you forgot a critical business clause.
 
 ---
 
