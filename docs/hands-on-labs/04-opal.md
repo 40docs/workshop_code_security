@@ -33,7 +33,9 @@ OPAL is FortiCNAPP's IaC static analyzer based on the **OPA framework** and **Re
 
 OPAL is part of the IaC component within the FortiCNAPP CLI. The FortiCNAPP CLI works with CI/CD tools such as **Jenkins**, **Circle CI**, **GitHub Actions**, and **GitLab Pipelines**.
 
-### The Security Gap
+---
+
+## The Security Gap
 
 **Surface-Level vs. Deep Analysis**
 
