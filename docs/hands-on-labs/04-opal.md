@@ -12,7 +12,7 @@ buttons:
 
 Welcome to the FortiCNAPP OPAL Lab. This guide demonstrates why generic security scanning - while necessary - isn't sufficient for enterprise security. You need custom OPAL policies to enforce your organization's specific requirements.
 
-![IaCvsPaC](images/magicians2.jpg)
+![IaCvsPaC](images/magicians3.jpg)
 
 > **Standard scanners perform basic security tricks. OPAL delivers real security magic - enforcing YOUR business
   requirements.**
