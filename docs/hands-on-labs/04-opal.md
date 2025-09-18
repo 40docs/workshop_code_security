@@ -47,10 +47,10 @@ Standard IaC scanners operate like automated spell-checkers - they catch obvious
 
 **What YOUR Business Actually Needs:**
 
-- Production systems MUST use specific audit-logging security groups
-- Payment processing MUST be in isolated VPCs
-- Only platform team CAN modify production load balancers
-- Financial data MUST use company-managed KMS keys
+- Environment-Specific Rules: Production workloads MUST use YOUR approved configurations
+- Organizational Standards: Resources MUST follow YOUR team's naming and tagging requirements
+- Custom Compliance: Systems MUST integrate with YOUR specific security and monitoring tools
+- Business Logic: Critical services MUST meet YOUR defined reliability and recovery standards
 
 **The Reality:** Generic scanners are like having spell-check review your contracts - helpful, but they won't catch that you forgot a critical business clause.
 
