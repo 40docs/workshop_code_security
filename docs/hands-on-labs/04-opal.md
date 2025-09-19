@@ -98,7 +98,7 @@ lacework iac scan -d terraform/
 
 ### Scan Results Analysis
 
-![Standard Scan Visual](images/iacscanlist.PNG){ align=right width=300 }
+![Standard Scan Visual](images/iacscanlist.PNG){ align=right width=300 height=300 }
 
 **What Standard Scanning Finds:**
 
