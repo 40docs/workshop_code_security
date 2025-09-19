@@ -92,9 +92,13 @@ cd lab-forticnapp-opal
 # Look at the "secure" infrastructure
 cat terraform/looks_secure.tf
 
-# Run standard IaC scan - see only failures
-lacework iac scan -d terraform/ 2>&1 | grep "false.*false"
+# Run standard IaC scan
+lacework iac scan -d terraform/
 ```
+
+### Scan Results Analysis
+
+![Standard Scan Visual](images/images/iacscanlist.PNG){ align=right width=200 }
 
 **What Standard Scanning Finds:**
 
