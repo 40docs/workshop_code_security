@@ -396,7 +396,7 @@ cat terraform/looks_secure.tf
 ```bash
 # Run standard IaC scan
 echo "=== STANDARD SCAN (Generic Rules) ==="
-lacework iac scan -d terraform/ --upload=false 2>&1 | grep "Severity.*false"
+lacework iac scan -d terraform/ --upload=false
 
 # Results: ~3 minor issues (S3 logging, EBS optimization, etc.)
 # BUT MISSES: Production audit logging requirement!
@@ -405,10 +405,10 @@ lacework iac scan -d terraform/ --upload=false 2>&1 | grep "Severity.*false"
 ```bash
 # Run OPAL scan with your custom policies
 echo "=== OPAL SCAN (YOUR Business Rules) ==="
-lacework iac scan -d terraform/ --upload=false --custom-policy-dir=policies 2>&1 | grep "my-audit"
+lacework iac scan -d terraform/ --upload=false --custom-policy-dir=policies
 
 # Results: CATCHES the missing audit-logging security group!
-# c-opl-my-audit-requirement  HIGH  Production instance missing required audit logging
+# Look for: c-opl-my-audit-requirement  HIGH
 # ^^^ YOUR CRITICAL BUSINESS REQUIREMENT VIOLATION CAUGHT!
 ```
 
