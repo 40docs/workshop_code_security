@@ -117,76 +117,137 @@ lacework iac scan -d terraform/ 2>&1 | grep "false.*false"
 
 ## Part 2: The Solution - Custom Policies with OPAL
 
-### Understanding the Custom Policy
+### Understanding OPAL Policy Components
 
-The cloned repository already contains a custom OPAL policy that enforces YOUR requirement. Let's examine how it works:
+!!! info "What You'll Build"
+    A custom OPAL policy consists of three key components:
 
-#### Step 1: Explore the Existing Policy Structure
+    1. **metadata.yaml** - Defines policy properties (ID, severity, description)
+    2. **policy.rego** - Contains the actual business logic in Rego language
+    3. **test cases** - Validates your policy works correctly (pass AND fail scenarios)
 
-```bash
-# From the lab-forticnapp-opal directory
-ls -la policies/opal/my_audit_policy/
+### Choose Your Path
 
-# Review the policy metadata
-cat policies/opal/my_audit_policy/metadata.yaml
+=== "Option A: Use Existing Example"
 
-# This shows:
-# - policy_id: "my-audit-requirement"
-# - severity: "High"
-# - description: Production instances require audit logging
-```
+    The cloned repository contains a working policy. Let's understand what it does:
 
-#### Optional: Create Your Own Policy
+    ```bash
+    # Examine the policy structure
+    ls -la policies/opal/my_audit_policy/
+    # Output:
+    # metadata.yaml     - Policy definition
+    # policy.rego       - Business logic
+    # terraform/tests/  - Test cases
+    ```
 
-If you want to create a new custom policy from scratch:
+    **What This Policy Does:**
+    - Enforces that production EC2 instances MUST have an audit-logging security group
+    - Allows development instances to skip this requirement
+    - Demonstrates how to check resource tags and security group assignments
 
-```bash
-# Create a new policy directory
-mkdir -p policies/opal/my_custom_policy
-cd policies/opal/my_custom_policy
+=== "Option B: Create From Scratch"
 
-# Create metadata file
-cat > metadata.yaml <<EOF
-policy_id: "my-custom-requirement"
-title: "My Organization's Custom Requirement"
-severity: "High"
-description: "Custom security requirement for our organization"
-resource_type: "aws_instance"
-provider: "aws"
-category: "Compliance"
-EOF
-```
+    Build your own custom policy step by step:
 
-#### Step 2: Examine the Policy Logic
+    ```bash
+    # Create policy directory structure
+    mkdir -p policies/opal/my_org_policy
+    cd policies/opal/my_org_policy
+    ```
 
-```bash
-# Review the existing policy logic
-cat policies/opal/my_audit_policy/policy.rego
+### Step 1: Define Policy Metadata
 
-# The policy enforces:
-# - Production instances MUST have audit-logging-sg
-# - Non-production instances are exempt
-# - Uses helper function to check security groups
-```
+**Understanding metadata.yaml:**
+This file tells FortiCNAPP what your policy checks and how severe violations are.
 
-For creating your own custom policy, here's the logic:
+=== "Examine Existing"
 
-```bash
-# If creating a new policy (my_custom_policy)
-cat > policy.rego <<'EOF'
-package policies.my_custom_policy
+    ```bash
+    cat policies/opal/my_audit_policy/metadata.yaml
+    ```
 
-input_type := "tf"
-resource_type := "aws_instance"
-default allow = false
+    ```yaml
+    policy_id: "my-audit-requirement"        # Unique identifier
+    title: "Production Audit Logging"        # Human-readable name
+    severity: "High"                          # High/Medium/Low
+    description: "Production instances must have audit logging"
+    resource_type: "aws_instance"            # What to check
+    provider: "aws"                          # Cloud provider
+    category: "Compliance"                   # Policy category
+    ```
 
-# Your custom requirement logic here
-allow {
-    # Define your business rules
-    input.tags.YourRequirement == "YourValue"
-}
-EOF
-```
+=== "Create Your Own"
+
+    ```bash
+    cat > metadata.yaml <<EOF
+    policy_id: "org-network-isolation"
+    title: "Network Isolation Policy"
+    severity: "High"
+    description: "Databases must not have public IPs"
+    resource_type: "aws_instance"
+    provider: "aws"
+    category: "Security"
+    EOF
+    ```
+
+### Step 2: Write Policy Logic in Rego
+
+**Understanding Rego:**
+Rego is OPA's policy language. It evaluates infrastructure configurations against your rules.
+
+=== "Examine Existing"
+
+    ```bash
+    cat policies/opal/my_audit_policy/policy.rego
+    ```
+
+    ```rego
+    package policies.my_audit_policy
+
+    input_type := "tf"                    # Terraform input
+    resource_type := "aws_instance"       # Check EC2 instances
+    default allow = false                  # Deny by default
+
+    # Rule: Production needs audit logging
+    allow {
+        input.tags.Environment == "production"
+        has_audit_logging_sg               # Must have this SG
+    }
+
+    # Rule: Non-production is exempt
+    allow {
+        input.tags.Environment != "production"
+    }
+
+    # Helper: Check for audit SG
+    has_audit_logging_sg {
+        sg_ref := input.vpc_security_group_ids[_]
+        contains(sg_ref, "audit_logging_sg")
+    }
+    ```
+
+=== "Create Your Own"
+
+    ```bash
+    cat > policy.rego <<'EOF'
+    package policies.my_org_policy
+
+    input_type := "tf"
+    resource_type := "aws_instance"
+    default allow = false
+
+    # Databases must not have public IPs
+    allow {
+        input.tags.Type != "Database"
+    }
+
+    allow {
+        input.tags.Type == "Database"
+        not input.associate_public_ip_address
+    }
+    EOF
+    ```
 
 ---
 
@@ -197,94 +258,148 @@ EOF
 
     **Reality**: A passing test only proves your policy accepts good configurations. It doesn't prove it rejects bad ones!
 
-### Understanding the Test Cases
+### Creating Test Cases - The Most Critical Step
 
-The repository includes comprehensive test cases. Let's examine them:
+**Why Both Pass AND Fail Tests Matter:**
+- **Pass tests** prove your policy accepts valid configurations
+- **Fail tests** prove your policy actually catches violations
+- Without fail tests, your policy might accept everything!
 
-#### Review PASSING Test Cases
+=== "Examine Existing Tests"
+
+    ```bash
+    # Review test structure
+    ls -la policies/opal/my_audit_policy/terraform/tests/
+    # pass/   - Configurations that should be allowed
+    # fail/   - Configurations that should be blocked
+    ```
+
+    **Passing Test Example:**
+    ```bash
+    cat policies/opal/my_audit_policy/terraform/tests/pass/compliant.tf
+    ```
+    ```hcl
+    # ✅ This PASSES - Production WITH audit logging
+    resource "aws_instance" "good_prod" {
+      vpc_security_group_ids = [
+        aws_security_group.web_sg.id,
+        aws_security_group.audit_logging_sg.id  # Has required SG
+      ]
+      tags = {
+        Environment = "production"
+      }
+    }
+    ```
+
+    **Failing Test Example:**
+    ```bash
+    cat policies/opal/my_audit_policy/terraform/tests/fail/violations.tf
+    ```
+    ```hcl
+    # ❌ This FAILS - Production WITHOUT audit logging
+    resource "aws_instance" "bad_prod" {
+      vpc_security_group_ids = [
+        aws_security_group.web_sg.id
+        # MISSING: audit_logging_sg
+      ]
+      tags = {
+        Environment = "production"  # Violation!
+      }
+    }
+    ```
+
+=== "Create Your Own Tests"
+
+    ```bash
+    # Create test directories
+    mkdir -p policies/opal/my_org_policy/terraform/tests/pass
+    mkdir -p policies/opal/my_org_policy/terraform/tests/fail
+    ```
+
+    **Create a PASS test:**
+    ```bash
+    cat > policies/opal/my_org_policy/terraform/tests/pass/good.tf <<'EOF'
+    # Application server with no public IP - SHOULD PASS
+    resource "aws_instance" "app_server" {
+      associate_public_ip_address = false
+      tags = {
+        Type = "Application"
+      }
+    }
+    EOF
+    ```
+
+    **Create a FAIL test:**
+    ```bash
+    cat > policies/opal/my_org_policy/terraform/tests/fail/bad.tf <<'EOF'
+    # Database with public IP - SHOULD FAIL
+    resource "aws_instance" "database" {
+      associate_public_ip_address = true  # Violation!
+      tags = {
+        Type = "Database"
+      }
+    }
+    EOF
+    ```
+
+### Step 4: Test Your Policy
+
+**Running Policy Tests:**
 
 ```bash
-# See what configurations should PASS
-ls -la policies/opal/my_audit_policy/terraform/tests/pass/
-cat policies/opal/my_audit_policy/terraform/tests/pass/compliant.tf
-
-# This shows production instances WITH audit-logging-sg (correct)
-# And development instances without it (also correct)
-```
-
-#### Review FAILING Test Cases (CRUCIAL!)
-
-```bash
-# See what configurations should FAIL
-ls -la policies/opal/my_audit_policy/terraform/tests/fail/
-cat policies/opal/my_audit_policy/terraform/tests/fail/violations.tf
-
-# This shows production instances WITHOUT audit-logging-sg (violation!)
-```
-
-#### Optional: Create Your Own Test Cases
-
-If you created a custom policy, add test cases:
-
-```bash
-# For your custom policy
-mkdir -p policies/opal/my_custom_policy/terraform/tests/pass
-mkdir -p policies/opal/my_custom_policy/terraform/tests/fail
-
-# Create a passing test
-cat > policies/opal/my_custom_policy/terraform/tests/pass/good.tf <<'EOF'
-# Configuration that meets YOUR requirements
-resource "aws_instance" "compliant" {
-  # ... your compliant configuration
-}
-EOF
-
-# Create a failing test
-cat > policies/opal/my_custom_policy/terraform/tests/fail/bad.tf <<'EOF'
-# Configuration that violates YOUR requirements
-resource "aws_instance" "violation" {
-  # ... your non-compliant configuration
-}
-EOF
-```
-
-#### Test the Policy
-
-```bash
-# Test your policy
+# Test the existing audit policy
 lacework iac policy test -d policies/opal/my_audit_policy
 
-# Expected output:
-# ✅ Pass test: compliant.tf - PASSED (policy accepted good config)
-# ✅ Fail test: violations.tf - PASSED (policy rejected bad config)
+# Or test your custom policy if you created one
+lacework iac policy test -d policies/opal/my_org_policy
+```
+
+**Understanding Test Results:**
+```
+✅ PASS test succeeded - Policy correctly ACCEPTED valid config
+✅ FAIL test succeeded - Policy correctly REJECTED bad config
+❌ PASS test failed - Policy wrongly rejected valid config
+❌ FAIL test failed - Policy wrongly accepted bad config
 ```
 
 !!! success "Testing Insight"
-    If your fail test doesn't actually fail, your policy has a bug! This validates that your policy logic correctly rejects non-compliant configurations.
+    A properly working policy shows ALL GREEN checkmarks. If fail tests don't actually fail, your policy has a bug!
 
 ---
 
-## Part 4: Victory Lap - Catching Real Issues
+## Part 4: Victory Lap - Seeing OPAL in Action
 
-Now let's apply your tested policy to the original infrastructure:
+### Applying Your Policy to Real Infrastructure
 
-### Standard Scan vs OPAL Custom Policy
+Now let's see how OPAL catches what standard scanning misses:
+
+**Step 1: Examine the "Looks Secure" Infrastructure**
+```bash
+# Review the infrastructure that passes standard scans
+cat terraform/looks_secure.tf
+
+# Notice: Production instance missing audit-logging-sg
+# But standard scanners won't catch this!
+```
+
+**Step 2: Compare Standard Scan vs OPAL**
 
 ```bash
-# Standard scan - misses business logic violations
-echo "=== STANDARD SCAN - What it catches ==="
-lacework iac scan -d terraform/ 2>&1 | grep "false.*false"
+# Run standard IaC scan
+echo "=== STANDARD SCAN (Generic Rules) ==="
+lacework iac scan -d terraform/ --upload=false 2>&1 | grep "Severity.*false"
 
-# Output: Only operational issues
-# - S3 bucket missing replication (operational)
-# - S3 bucket missing logging (operational)
-# - EC2 not EBS-optimized (performance)
+# Results: ~3 minor issues (S3 logging, EBS optimization, etc.)
+# BUT MISSES: Production audit logging requirement!
+```
 
-echo "=== OPAL CUSTOM POLICIES - What YOU need caught ==="
-lacework iac scan -d terraform/ --upload=false --custom-policy-dir=policies 2>&1 | grep "c-opl-my-audit"
+```bash
+# Run OPAL scan with your custom policies
+echo "=== OPAL SCAN (YOUR Business Rules) ==="
+lacework iac scan -d terraform/ --upload=false --custom-policy-dir=policies 2>&1 | grep "my-audit"
 
-# Output:
-# c-opl-my-audit-policy  High  false  Production Audit Logging Requirement
+# Results: CATCHES the missing audit-logging security group!
+# c-opl-my-audit-requirement  HIGH  Production instance missing required audit logging
 # ^^^ YOUR CRITICAL BUSINESS REQUIREMENT VIOLATION CAUGHT!
 ```
 
