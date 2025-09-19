@@ -151,9 +151,12 @@ lacework iac scan -d terraform/ 2>&1 | grep "false.*false"
     Build your own custom policy step by step:
 
     ```bash
+    # IMPORTANT: Stay in the repository root directory for all commands
+    # From the lab-forticnapp-opal directory
+    pwd  # Should show: .../lab-forticnapp-opal
+
     # Create policy directory structure
     mkdir -p policies/opal/my_org_policy
-    cd policies/opal/my_org_policy
     ```
 
 ### Step 1: Define Policy Metadata
@@ -180,7 +183,8 @@ This file tells FortiCNAPP what your policy checks and how severe violations are
 === "Create Your Own"
 
     ```bash
-    cat > metadata.yaml <<EOF
+    # Create metadata file in your policy directory
+    cat > policies/opal/my_org_policy/metadata.yaml <<EOF
     policy_id: "org-network-isolation"
     title: "Network Isolation Policy"
     severity: "High"
@@ -230,7 +234,8 @@ Rego is OPA's policy language. It evaluates infrastructure configurations agains
 === "Create Your Own"
 
     ```bash
-    cat > policy.rego <<'EOF'
+    # Create policy logic file
+    cat > policies/opal/my_org_policy/policy.rego <<'EOF'
     package policies.my_org_policy
 
     input_type := "tf"
